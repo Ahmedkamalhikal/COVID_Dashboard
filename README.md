@@ -1,6 +1,6 @@
 # 🌍 COVID-19 Global Analytics Dashboard
 
-A real-time interactive dashboard built with **Python**, **Streamlit**, and **Plotly Express** to visualize global COVID-19 trends, mortality rates, and recovery statistics.
+An interactive dashboard built with **Python**, **Streamlit**, and **Plotly Express** to visualize global COVID-19 trends, mortality rates, and recovery statistics.
 
 ## 🚀 Live Demo
 [View the Dashboard on Streamlit Cloud](https://coviddashboardpy.streamlit.app/)
