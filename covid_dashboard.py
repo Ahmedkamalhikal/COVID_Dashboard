@@ -2,97 +2,83 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-countries_covid =pd.DataFrame(pd.read_csv('countries_covid.csv'))
+# 1. Page Configuration
+st.set_page_config(page_title="COVID-19 Global Dashboard", layout="wide")
 
-countries_covid.drop(columns=['todayCases', 'todayDeaths', 'todayRecovered','todayRecovered','countryInfo._id','countryInfo.iso2','countryInfo.iso3','countryInfo.lat','countryInfo.long'], inplace=True)
-countries_covid.dropna(inplace=True)
-countries_covid
+st.title("🌍 COVID-19 Global Data Analysis")
+st.markdown("This dashboard analyzes global COVID-19 trends using Plotly and Streamlit.")
 
-# Which Top 10 countries have the highest total COVID-19 cases?
+# 2. Data Loading
+@st.cache_data # Caches data so it doesn't reload on every click
+def load_data():
+    df = pd.read_csv('countries_covid.csv')
+    # Cleaning
+    cols_to_drop = ['todayCases', 'todayDeaths', 'todayRecovered', 'countryInfo._id', 
+                    'countryInfo.iso2', 'countryInfo.iso3', 'countryInfo.lat', 'countryInfo.long']
+    df.drop(columns=[c for c in cols_to_drop if c in df.columns], inplace=True)
+    df.dropna(inplace=True)
+    return df
 
-top10 = countries_covid.nlargest(10, 'cases')
-fig1 = px.bar(top10,
-             x='cases', y='country',
-             orientation='h',
-             color='cases',
-             color_continuous_scale='Spectral',
-             title='Top 10 Cases by Country',
-             labels={'cases': 'Total Cases'},
-             text_auto='.2s'
-             )
+df = load_data()
 
-# Which Top 10 countries recorded the highest number of deaths?
-top10 = countries_covid.nlargest(10, 'deaths')
-fig2 = px.bar(top10,
-             x='deaths', y='country',
-             orientation='h',
-             color='deaths',
-             color_continuous_scale='Spectral',
-             title='Top 10 Deaths by Country',
-             labels={'deaths': 'Total Deaths'},
-             text_auto='.2s'
-             )
-fig2.show()
+# 3. Sidebar Filters (Optional but nice for dashboards)
+st.sidebar.header("Filter Options")
+top_n = st.sidebar.slider("Select number of countries:", 5, 20, 10)
 
-# Which countries have the highest recovery numbers?
-top10 = countries_covid.nlargest(10, 'recovered')
-fig3 = px.bar(top10,
-             y='recovered', x='country',
-             color='recovered',
-             color_continuous_scale='Spectral',
-             title='Top 10 Recovery by Country',
-             labels={'recovered': 'Total Recovered'},
-             text_auto='.2s'
-             )
+# --- VISUALIZATIONS ---
 
-fig4 = px.pie(top10,
-             values='active',
-             names='country',
-             title='Top 10 coutries per percentage of active cases',
-             # FIX: Use color_discrete_sequence instead of color_continuous_scale
-             color_discrete_sequence=px.colors.sequential.Oranges_r,
-             hole=0.3)
-
-# 3. Update traces for better visibility
-fig4.update_traces(textposition='inside', textinfo='percent+label')
-
-# Which top 10  countries have the highest death rate (deaths compared to total cases)?
-countries_covid['death_rate'] = countries_covid['deaths'] / countries_covid['cases'] * 100
-top10 = countries_covid.nlargest(10, 'death_rate')
-fig5 = px.bar(top10,
-              x= 'country',
-              y= 'death_rate',
-              color = 'death_rate',
-              color_continuous_scale='Reds',
-              labels={'country': 'Country', 'death_rate': 'Death Rate (%)'},
-              title='Top 10 Countries by COVID-19 Death Rate'
-)
-
-
-# What is the relationship between active cases and critical cases across countries?
-fig6 = px.scatter(countries_covid,
-                  x='cases',
-                  y='deaths',
-                  color='active',
-                   color_continuous_scale='Spectral',
-                  title='Relationship between Active Cases and deaths across Countries',)
-
-
-st.set_page_config(page_title="COVID-19 Dashboard", layout="wide")
-
-st.title("🌍 COVID-19 Global Analysis Dashboard")
-
-# Row 1: Total Cases & Deaths
+# Row 1: Cases and Deaths
 col1, col2 = st.columns(2)
-col1.plotly_chart(fig1, use_container_width=True)
-col2.plotly_chart(fig2, use_container_width=True)
 
-# Row 2: Recovered & Active %
+with col1:
+    top10_cases = df.nlargest(top_n, 'cases')
+    fig1 = px.bar(top10_cases, x='cases', y='country', orientation='h',
+                 color='cases', color_continuous_scale='Spectral',
+                 title=f'Top {top_n} Cases by Country', text_auto='.2s')
+    st.plotly_chart(fig1, use_container_width=True)
+
+with col2:
+    top10_deaths = df.nlargest(top_n, 'deaths')
+    fig2 = px.bar(top10_deaths, x='deaths', y='country', orientation='h',
+                 color='deaths', color_continuous_scale='Spectral',
+                 title=f'Top {top_n} Deaths by Country', text_auto='.2s')
+    st.plotly_chart(fig2, use_container_width=True)
+
+# Row 2: Recoveries and Active Percentage
 col3, col4 = st.columns(2)
-col3.plotly_chart(fig3, use_container_width=True)
-col4.plotly_chart(fig4, use_container_width=True)
 
-# Row 3: Death Rate & Active vs Critical
+with col3:
+    top10_rec = df.nlargest(top_n, 'recovered')
+    fig3 = px.bar(top10_rec, y='recovered', x='country',
+                 color='recovered', color_continuous_scale='Spectral',
+                 title=f'Top {top_n} Recovery by Country', text_auto='.2s')
+    st.plotly_chart(fig3, use_container_width=True)
+
+with col4:
+    top10_active = df.nlargest(top_n, 'active')
+    fig4 = px.pie(top10_active, values='active', names='country',
+                 title=f'Active Cases Distribution (Top {top_n})',
+                 color_discrete_sequence=px.colors.sequential.Oranges_r, hole=0.3)
+    fig4.update_traces(textposition='inside', textinfo='percent+label')
+    st.plotly_chart(fig4, use_container_width=True)
+
+# Row 3: Death Rate and Relationships
 col5, col6 = st.columns(2)
-col5.plotly_chart(fig5, use_container_width=True)
-col6.plotly_chart(fig6, use_container_width=True)
+
+with col5:
+    df['death_rate'] = (df['deaths'] / df['cases']) * 100
+    top10_rate = df.nlargest(top_n, 'death_rate')
+    fig5 = px.bar(top10_rate, x='country', y='death_rate',
+                 color='death_rate', color_continuous_scale='Reds',
+                 title=f'Top {top_n} Countries by Death Rate (%)')
+    st.plotly_chart(fig5, use_container_width=True)
+
+with col6:
+    fig6 = px.scatter(df, x='cases', y='deaths', color='active',
+                     color_continuous_scale='Spectral',
+                     title='Relationship: Total Cases vs Deaths')
+    st.plotly_chart(fig6, use_container_width=True)
+
+# Display Raw Data if user wants
+if st.checkbox("Show Raw Data"):
+    st.dataframe(df)
