@@ -1,9 +1,9 @@
 import pandas as pd
 import plotly.express as px
 import streamlit as st
+import altair
 
-# 1. Page Configuration (Must be the first Streamlit command)
-st.set_page_config(page_title="COVID-19 Dashboard", layout="wide")
+st.set_page_config(page_title="COVID Dashboard", layout="wide")
 
 st.title("📊 Global COVID-19 Analytics Dashboard")
 st.markdown("---")
